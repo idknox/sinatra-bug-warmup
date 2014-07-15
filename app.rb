@@ -12,7 +12,11 @@ class App < Sinatra::Base
   end
 
   get "/" do
-    erb :home
+    if session[:id]
+      erb :loggedin, :locals => {:cur_user => get_name(session[:id])}
+    else
+      erb :home
+    end
   end
 
   get "/register" do
@@ -29,5 +33,21 @@ class App < Sinatra::Base
     flash[:notice] = "Thanks for signing up"
 
     redirect "/"
+  end
+
+  post "/" do
+    select_sql = <<-SQL
+      SELECT username, id FROM users WHERE username = '#{params[:username]}'
+    SQL
+    info = @database_connection.sql(select_sql)
+    session[:id] = info[0]["id"].to_i
+    redirect "/"
+  end
+
+  def get_name(id)
+    select_sql = <<-SQL
+      SELECT username, id FROM users WHERE id = '#{id}'
+    SQL
+    @database_connection.sql(select_sql)[0]["username"]
   end
 end
